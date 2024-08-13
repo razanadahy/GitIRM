@@ -1,73 +1,45 @@
 {
-  "name": "elp-aris-concept-company",
-  "version": "0.1.0",
-  "private": true,
-  "homepage": "./",
-  "main": "public/electron.js",
-  "dependencies": {
-    "@fortawesome/fontawesome-free": "^6.5.2",
-    "@testing-library/jest-dom": "^5.17.0",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "auto-launch": "^5.0.6",
-    "bootstrap": "^5.3.3",
-    "electron-reload": "^2.0.0-alpha.1",
-    "electron-store": "^10.0.0",
-    "electron-updater": "^6.2.1",
-    "react": "^18.3.1",
-    "react-bootstrap": "^2.10.4",
-    "react-dom": "^18.3.1",
-    "react-router-dom": "^6.24.1",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
-  },
+  "name": "elp",
+  "version": "1.0.0",
+  "main": "src/main.js",
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject",
-    "packager": "electron-builder"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
-  },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
-    ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "start": "electron ./",
+    "build": "electron-builder"
   },
   "build": {
-    "appId": "apk",
+    "appId": "elp.aris.concept",
+    "productName": "ELP | Aris Concept",
     "win": {
-      "icon": "build/logoA.ico",
       "target": [
-        "nsis"
-      ]
+        "nsis",
+        "portable"
+      ],
+      "icon": "build/logoA.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "installerIcon": "build/logoA.ico",
+      "uninstallDisplayName": "elp-uninstaller",
+      "license": "license.md",
+      "allowToChangeInstallationDirectory": true,
+      "perMachine": false
     }
   },
-  "nsis": {
-    "oneclick": false,
-    "installerIcon": "build/logoA.ico",
-    "uninstallDisplayName": "elp-uninstall",
-    "allowToChangeInstallationDirectory": true
+  "dependencies": {
+    "auto-launch": "^5.0.6",
+    "electron-log": "^5.1.7",
+    "electron-store": "^10.0.0",
+    "electron-updater": "^6.2.1"
   },
+  "keywords": [],
+  "author": "Andrianiavo",
+  "description": "",
   "devDependencies": {
     "concurrently": "^8.2.2",
     "electron": "^31.3.1",
     "electron-is-dev": "^3.0.1",
-    "electron-log": "^5.1.7",
     "electron-store": "^10.0.0",
     "electron-wix-msi": "^5.1.3",
-    "node-windows": "^1.0.0-beta.8"
+    "electron-builder": "^24.13.3"
   }
 }

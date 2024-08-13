@@ -17,7 +17,7 @@ function createWindow () {
         autoHideMenuBar: true,
         width: 800,
         height: 650,
-        icon: path.join(__dirname,'./build/logoA.ico'),
+        icon: path.join(__dirname,'../build/logoA.ico'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
