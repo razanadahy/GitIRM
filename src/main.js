@@ -26,12 +26,12 @@ function createWindow () {
         }
     });
 
-    mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
-        mainWindow.webContents.openDevTools()
-    });
-    // mainWindow.loadURL('http://localhost:3000/').then(()=>{
+    // mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
     //     mainWindow.webContents.openDevTools()
-    // })
+    // });
+    mainWindow.loadURL('http://localhost:3000/').then(()=>{
+        mainWindow.webContents.openDevTools()
+    })
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
@@ -90,25 +90,28 @@ autoLauncher.isEnabled()
         return store.get(name) || null
     })
 })();
-autoUpdater.on("update-available",(info)=>{
-    logToFile("date : "+ new Date()+ "  ....update available...")
-    const mes=autoUpdater.downloadUpdate()
-    logToFile(mes)
-})
-autoUpdater.on("update-not-available",(event)=>{
-    // event.sender.send('update-status', 3);
-    logToFile("pas de mise à jour....")
-})
-autoUpdater.on("update-downloaded",(event)=>{
-    // event.sender.send('update-status', 2);
-    logToFile("update-downloaded.....")
-})
+
 const checkUpdate = (event) => {
     autoUpdater.autoDownload=false
     autoUpdater.autoInstallOnAppQuit=true
-    autoUpdater.checkForUpdates().then(()=>{
-        // autoUpdater.quitAndInstall(false,true)
+    autoUpdater.on("update-available",(info)=>{
+        logToFile("date : "+ new Date()+ "  ....update available...")
+        const mes=autoUpdater.downloadUpdate()
+        logToFile(mes)
     })
+    autoUpdater.on("update-not-available",(event)=>{
+        // event.sender.send('update-status', 3);
+        logToFile("pas de mise à jour....")
+    })
+    autoUpdater.on("update-downloaded",()=>{
+        event.sender.send('update-status', "update-dowloaded....");
+        logToFile("update-downloaded.....")
+    })
+    autoUpdater.on("download-progress", (progress)=>{
+        event.sender.send('update-status', progress.transferred)
+        logToFile(progress.percent)
+    })
+    autoUpdater.checkForUpdates()
 }
 ipcMain.on('update',(event)=>{
     checkUpdate(event)
