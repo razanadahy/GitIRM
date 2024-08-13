@@ -1,24 +1,28 @@
 {
   "name": "elp",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "src/main.js",
   "scripts": {
     "start": "electron ./",
     "build": "electron-builder"
+  },
+  "repository": "https://github.com/razanadahy/GitIRM",
+  "publish": {
+    "provider": "github",
+    "releaseType": "release"
   },
   "build": {
     "appId": "elp.aris.concept",
     "productName": "ELP | Aris Concept",
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "nsis"
       ],
-      "icon": "build/logoA.ico"
+      "icon": "src/build/logoA.ico"
     },
     "nsis": {
       "oneClick": false,
-      "installerIcon": "build/logoA.ico",
+      "installerIcon": "src/build/logoA.ico",
       "uninstallDisplayName": "elp-uninstaller",
       "license": "license.md",
       "allowToChangeInstallationDirectory": true,

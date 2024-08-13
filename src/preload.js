@@ -20,7 +20,7 @@ contextBridge.exposeInMainWorld('main',{
     maximise: ()=>ipcRenderer.send('maximise')
 })
 contextBridge.exposeInMainWorld('checkUpdate',{
-    update: (server,version)=>ipcRenderer.send('update',server,version),
+    update: ()=>ipcRenderer.send('update'),
     onUpdateStatus: (callback) => ipcRenderer.on('update-status', callback),
     removeStatusListener: () => ipcRenderer.removeAllListeners('update-status')
 })

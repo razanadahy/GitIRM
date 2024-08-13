@@ -1,9 +1,7 @@
 const { app, BrowserWindow, ipcMain } = require('electron/main');
-// const { autoUpdater } = require('electron-updater');
+const { autoUpdater, AppUpdater } = require('electron-updater');
 const path = require('node:path');
 const AutoLaunch = require('auto-launch');
-const https = require('http');
-const { exec } = require('child_process').exec;
 const fs = require('fs');
 
 function logToFile(message) {
@@ -17,7 +15,7 @@ function createWindow () {
         autoHideMenuBar: true,
         width: 800,
         height: 650,
-        icon: path.join(__dirname,'../build/logoA.ico'),
+        icon: path.join(__dirname,'./build/logoA.ico'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -28,12 +26,12 @@ function createWindow () {
         }
     });
 
-    // mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
-    //     mainWindow.webContents.openDevTools()
-    // });
-    mainWindow.loadURL('http://localhost:3000/').then(()=>{
+    mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
         mainWindow.webContents.openDevTools()
-    })
+    });
+    // mainWindow.loadURL('http://localhost:3000/').then(()=>{
+    //     mainWindow.webContents.openDevTools()
+    // })
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
@@ -64,7 +62,7 @@ const autoLauncher = new AutoLaunch({
 
 autoLauncher.isEnabled()
     .then((isEnabled) => {
-        logToFile("date : "+ new Date()+ "  ....auto lunch 1.0.1")
+        logToFile("date : "+ new Date()+ "  ....auto lunch"+app.getVersion())
         if (!isEnabled) autoLauncher.enable();
     })
     .catch((err) => {
@@ -82,7 +80,6 @@ autoLauncher.isEnabled()
         cwd: 'storage',
         // encryptionKey: encryptionKey,
     });
-    store.set('version','1.0.0')
     ipcMain.on('clear',()=>{
         store.clear()
     })
@@ -92,46 +89,27 @@ autoLauncher.isEnabled()
     ipcMain.handle('get', async (event,name)=>{
         return store.get(name) || null
     })
-    const log = require('electron-log');
-    const checkUpdate = (event,server, version) => {
-        if (version===store.get('version')){
-            event.sender.send('update-status', 1);
-            return
-        }
-        const file = fs.createWriteStream(path.join(app.getPath('temp'), 'myapp-update.msi'));
-        https.get(`${server}/update/latest`, function(response) {
-            response.pipe(file);
-            file.on('finish', function() {
-                file.close(() => {
-                    exec(`"${path.join(app.getPath('temp'), 'myapp-update.msi')}"`, (error) => {
-                        if (error) {
-                            console.error(`exec error: ${error}`);
-                            return;
-                        }
-                        app.quit();
-                    });
-                });
-            });
-        });
-        // autoUpdater.logger = log;
-        // autoUpdater.logger.transports.file.level = 'info';
-        // event.sender.send('update-status', 2);
-        // const feed = `${server}/update/latest`;
-        // autoUpdater.setFeedURL({ url: feed });
-        // autoUpdater.on('update-downloaded', (info) => {
-        //     autoUpdater.quitAndInstall();
-        //     store.set('version',version)
-        // });
-        // autoUpdater.checkForUpdates()
-        // autoUpdater.setFeedURL({
-        //     provider: 'generic',
-        //     url: `${server}/update/latest`
-        // });
-        // autoUpdater.checkForUpdatesAndNotify();
-    }
-    ipcMain.on('update',(event,server,version)=>{
-        checkUpdate(event,server,version)
-    })
 })();
-
-
+autoUpdater.on("update-available",(info)=>{
+    logToFile("date : "+ new Date()+ "  ....update available...")
+    const mes=autoUpdater.downloadUpdate()
+    logToFile(mes)
+})
+autoUpdater.on("update-not-available",(event)=>{
+    // event.sender.send('update-status', 3);
+    logToFile("pas de mise à jour....")
+})
+autoUpdater.on("update-downloaded",(event)=>{
+    // event.sender.send('update-status', 2);
+    logToFile("update-downloaded.....")
+})
+const checkUpdate = (event) => {
+    autoUpdater.autoDownload=false
+    autoUpdater.autoInstallOnAppQuit=true
+    autoUpdater.checkForUpdates().then(()=>{
+        // autoUpdater.quitAndInstall(false,true)
+    })
+}
+ipcMain.on('update',(event)=>{
+    checkUpdate(event)
+})
