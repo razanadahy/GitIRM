@@ -26,12 +26,12 @@ function createWindow () {
         }
     });
 
-    // mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
-    //     mainWindow.webContents.openDevTools()
-    // });
-    mainWindow.loadURL('http://localhost:3000/').then(()=>{
+    mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
         // mainWindow.webContents.openDevTools()
-    })
+    });
+    // mainWindow.loadURL('http://localhost:3000/').then(()=>{
+    //     // mainWindow.webContents.openDevTools()
+    // })
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
