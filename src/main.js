@@ -1,5 +1,5 @@
 const { app, BrowserWindow, ipcMain } = require('electron/main');
-const { autoUpdater, AppUpdater } = require('electron-updater');
+const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const AutoLaunch = require('auto-launch');
 const fs = require('fs');
@@ -22,7 +22,7 @@ function createWindow () {
             enableRemoteModule: false,
             nodeIntegration: false,
             webSecurity: false,
-            // devTools: false
+            devTools: false
         }
     });
 
@@ -30,7 +30,7 @@ function createWindow () {
     //     mainWindow.webContents.openDevTools()
     // });
     mainWindow.loadURL('http://localhost:3000/').then(()=>{
-        mainWindow.webContents.openDevTools()
+        // mainWindow.webContents.openDevTools()
     })
     mainWindow.on('closed', () => {
         mainWindow = null;
@@ -94,24 +94,49 @@ autoLauncher.isEnabled()
 const checkUpdate = (event) => {
     autoUpdater.autoDownload=false
     autoUpdater.autoInstallOnAppQuit=true
-    autoUpdater.on("update-available",(info)=>{
-        logToFile("date : "+ new Date()+ "  ....update available...")
-        const mes=autoUpdater.downloadUpdate()
-        logToFile(mes)
+    autoUpdater.on("checking-for-update",()=>{
+        // event.sender.send('status-update',1)
+        event.sender.send('update-status', "Cherche...");
     })
-    autoUpdater.on("update-not-available",(event)=>{
-        // event.sender.send('update-status', 3);
-        logToFile("pas de mise à jour....")
+    autoUpdater.on("update-available",(info)=>{
+        // logToFile("date : "+ new Date()+ "  ....update available...")
+
+        // event.sender.send('status-update',2)
+        autoUpdater.downloadUpdate().then(()=>{
+            // logToFile("Mise à jour téléchargée")
+            event.sender.send('update-status', "Telechargement de mise à jour...");
+        }).catch((er)=>{
+            event.sender.send('status-update',-10)
+            // logToFile("Erreur lors du téléchargement : " + er.message)
+            event.sender.send('update-status', "Erreur lors du téléchargement : " + er.message);
+        })
+
+    })
+    autoUpdater.on("update-not-available",()=>{
+        event.sender.send('update-status', "Pas de mise à jour disponible!");
+        event.sender.send('status-update',-1)
+        // logToFile("pas de mise à jour....")
     })
     autoUpdater.on("update-downloaded",()=>{
-        event.sender.send('update-status', "update-dowloaded....");
-        logToFile("update-downloaded.....")
+        event.sender.send('update-status', "Installation de mise à jour....");
+        // logToFile("update-downloaded.....")
+        autoUpdater.quitAndInstall();
     })
     autoUpdater.on("download-progress", (progress)=>{
-        event.sender.send('update-status', progress.transferred)
-        logToFile(progress.percent)
+        event.sender.send('status-update',2)
+        event.sender.send('update-status', progress.percent.toFixed(2))
+        // logToFile("Progression du téléchargement : " + progress.percent.toFixed(2) + "%");
     })
-    autoUpdater.checkForUpdates()
+    autoUpdater.on('error', (error) => {
+        event.sender.send('update-status',  "  ....Erreur lors de la mise à jour : " + error.message);
+        // event.sender.send('status-update',-10)
+        // logToFile("date : " + new Date() + "  ....Erreur lors de la mise à jour : " + error.message);
+    });
+    autoUpdater.checkForUpdates().catch(err=>{
+        // logToFile("Erreur lors de la vérification des mises à jour : " + err.message);
+        event.sender.send('update-status',  "  ....Erreur lors de la mise à jour : " + error.message);
+
+    })
 }
 ipcMain.on('update',(event)=>{
     checkUpdate(event)

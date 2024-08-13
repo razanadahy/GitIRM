@@ -22,5 +22,7 @@ contextBridge.exposeInMainWorld('main',{
 contextBridge.exposeInMainWorld('checkUpdate',{
     update: ()=>ipcRenderer.send('update'),
     onUpdateStatus: (callback) => ipcRenderer.on('update-status', callback),
-    removeStatusListener: () => ipcRenderer.removeAllListeners('update-status')
+    statusUpdate: (callback) => ipcRenderer.on('status-update', callback),
+    removeStatusListener: () => ipcRenderer.removeAllListeners('update-status'),
+    removeStatusUpdateListener: () => ipcRenderer.removeAllListeners('status-update'),
 })
