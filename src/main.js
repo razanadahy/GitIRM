@@ -15,6 +15,7 @@ function createWindow () {
         autoHideMenuBar: true,
         width: 800,
         height: 650,
+        title: 'ELP | Aris Concept Company',
         icon: path.join(__dirname,'./build/logoA.ico'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -22,16 +23,16 @@ function createWindow () {
             enableRemoteModule: false,
             nodeIntegration: false,
             webSecurity: false,
-            devTools: false
+            // devTools: false
         }
     });
 
-    mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
-        // mainWindow.webContents.openDevTools()
-    });
-    // mainWindow.loadURL('http://localhost:3000/').then(()=>{
+    // mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
     //     // mainWindow.webContents.openDevTools()
-    // })
+    // });
+    mainWindow.loadURL('http://localhost:3000/').then(()=>{
+        mainWindow.webContents.openDevTools()
+    })
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
