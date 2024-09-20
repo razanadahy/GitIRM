@@ -9,12 +9,26 @@ function logToFile(message) {
     fs.appendFileSync(logFilePath, message + '\n');
 }
 let mainWindow;
+const gotTheLock = app.requestSingleInstanceLock();
+if (!gotTheLock) {
+    app.focus()
+    app.exit()
+    logToFile("seconde insatnce...")
+} else {
+    app.on('second-instance', () => {
+        if (mainWindow) {
+            if (mainWindow.isMinimized()) mainWindow.restore();
+            mainWindow.focus();
+        }
+    });
+}
+
 function createWindow () {
     mainWindow = new BrowserWindow({
         autoHideMenuBar: true,
         width: 800,
         height: 650,
-        title: 'ELP | Aris Concept Company',
+        title: 'ARIS Manager',
         icon: path.join(__dirname,'./build/logoA.ico'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -22,16 +36,16 @@ function createWindow () {
             enableRemoteModule: false,
             nodeIntegration: false,
             webSecurity: false,
-            devTools: false
+            // devTools: false
         }
     });
 
-    mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
-        // mainWindow.webContents.openDevTools()
-    });
-    // mainWindow.loadURL('http://localhost:3000/').then(()=>{
-    //     mainWindow.webContents.openDevTools()
-    // })
+    // mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
+    //     // mainWindow.webContents.openDevTools()
+    // });
+    mainWindow.loadURL('http://localhost:3000/').then(()=>{
+        mainWindow.webContents.openDevTools()
+    })
     mainWindow.on('closed', () => {
         mainWindow = null;
     });
@@ -45,6 +59,36 @@ app.whenReady().then(()=>{
         }
     });
 });
+
+app.on('before-quit', async (event) => {
+    event.preventDefault();
+    try {
+        const {default: ElectronStore} = await import('electron-store');
+        const store = new ElectronStore({
+            name: 'elpSession',
+            cwd: 'storage',
+        });
+        const token = store.get('token');
+        console.log("on est la...")
+        if (token) {
+            const response = await fetch('http://11.140.1.112:8082/pointage/', {
+                method: 'put',
+                headers: {
+                    "Content-Type": 'application/json',
+                    "Authorization": `Bearer ${token}`,
+                },
+            });
+
+            if (!response.ok) {
+                throw new Error('Erreur lors de la requête de déconnexion');
+            }
+        }
+        app.exit();
+    } catch (error) {
+        console.log(error.message)
+        app.exit();
+    }
+})
 
 app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') {
@@ -95,19 +139,13 @@ const checkUpdate = (event) => {
     autoUpdater.autoDownload=false
     autoUpdater.autoInstallOnAppQuit=true
     autoUpdater.on("checking-for-update",()=>{
-        // event.sender.send('status-update',1)
         event.sender.send('update-status', "Cherche...");
     })
     autoUpdater.on("update-available",(info)=>{
-        // logToFile("date : "+ new Date()+ "  ....update available...")
-
-        // event.sender.send('status-update',2)
         autoUpdater.downloadUpdate().then(()=>{
-            // logToFile("Mise à jour téléchargée")
             event.sender.send('update-status', "Telechargement de mise à jour...");
         }).catch((er)=>{
             event.sender.send('status-update',-10)
-            // logToFile("Erreur lors du téléchargement : " + er.message)
             event.sender.send('update-status', "Erreur lors du téléchargement : " + er.message);
         })
 
@@ -115,25 +153,19 @@ const checkUpdate = (event) => {
     autoUpdater.on("update-not-available",()=>{
         event.sender.send('update-status', "Pas de mise à jour disponible!");
         event.sender.send('status-update',-1)
-        // logToFile("pas de mise à jour....")
     })
     autoUpdater.on("update-downloaded",()=>{
-        event.sender.send('update-status', "Installation de mise à jour....");
-        // logToFile("update-downloaded.....")
+        event.sender.send('update-status', "Installation de mise à jour....")
         autoUpdater.quitAndInstall();
     })
     autoUpdater.on("download-progress", (progress)=>{
         event.sender.send('status-update',2)
         event.sender.send('update-status', progress.percent.toFixed(2))
-        // logToFile("Progression du téléchargement : " + progress.percent.toFixed(2) + "%");
     })
     autoUpdater.on('error', (error) => {
         event.sender.send('update-status',  "  ....Erreur lors de la mise à jour : " + error.message);
-        // event.sender.send('status-update',-10)
-        // logToFile("date : " + new Date() + "  ....Erreur lors de la mise à jour : " + error.message);
     });
     autoUpdater.checkForUpdates().catch(err=>{
-        // logToFile("Erreur lors de la vérification des mises à jour : " + err.message);
         event.sender.send('update-status',  "  ....Erreur lors de la mise à jour : " + error.message);
 
     })
