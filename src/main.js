@@ -13,7 +13,6 @@ const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
     app.focus()
     app.exit()
-    logToFile("seconde insatnce...")
 } else {
     app.on('second-instance', () => {
         if (mainWindow) {
@@ -71,7 +70,7 @@ app.on('before-quit', async (event) => {
         const token = store.get('token');
         console.log("on est la...")
         if (token) {
-            const response = await fetch('http://11.140.1.112:8082/pointage/', {
+            const response = await fetch('http://localhost:8082/pointage/', {
                 method: 'put',
                 headers: {
                     "Content-Type": 'application/json',
