@@ -1,8 +1,13 @@
 const { app, BrowserWindow, ipcMain } = require('electron/main');
+const { shell } = require('electron');
+const { nativeImage } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
 const AutoLaunch = require('auto-launch');
+const notifier = require('node-notifier');
 const fs = require('fs');
+const { createCanvas } = require('canvas');
+// process.env.TZ = "Indian/Antananarivo";
 
 function logToFile(message) {
     const logFilePath = path.join(app.getPath('userData'), 'app.log');
@@ -28,7 +33,7 @@ function createWindow () {
         width: 800,
         height: 650,
         title: 'ARIS Manager',
-        icon: path.join(__dirname,'./build/logoA.ico'),
+        icon: path.join(__dirname,'icon.ico'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
             contextIsolation: true,
@@ -42,7 +47,7 @@ function createWindow () {
     // mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
     //     // mainWindow.webContents.openDevTools()
     // });
-    mainWindow.loadURL('http://localhost:3000/').then(()=>{
+    mainWindow.loadURL('http://192.168.4.229:3000/').then(()=>{
         mainWindow.webContents.openDevTools()
     })
     mainWindow.on('closed', () => {
@@ -52,6 +57,7 @@ function createWindow () {
 
 app.whenReady().then(()=>{
     createWindow()
+    // process.env.TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "Indian/Antananarivo";
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
             createWindow();
@@ -70,7 +76,8 @@ app.on('before-quit', async (event) => {
         const token = store.get('token');
         console.log("on est la...")
         if (token) {
-            const response = await fetch('http://localhost:8082/pointage/', {
+            // const response = await fetch('http://192.168.4.229:8082/pointage/', {
+            const response = await fetch('https://prod.aris-cc.com/pointage/', {
                 method: 'put',
                 headers: {
                     "Content-Type": 'application/json',
@@ -99,10 +106,9 @@ ipcMain.on('maximise',()=>{
     mainWindow.setMinimumSize(1200, 720);
 })
 const autoLauncher = new AutoLaunch({
-    name: 'irm',
-    path: process.execPath,
+    name: 'arismanager',
+    path:  path.join(__dirname, 'ARISManager.exe'),
 });
-
 autoLauncher.isEnabled()
     .then((isEnabled) => {
         logToFile("date : "+ new Date()+ "  ....auto lunch"+app.getVersion())
@@ -171,4 +177,81 @@ const checkUpdate = (event) => {
 }
 ipcMain.on('update',(event)=>{
     checkUpdate(event)
+})
+
+
+function showNotification(titre,body,callBack) {
+    notifier.notify(
+        {
+            title: titre,
+            message: body,
+            icon: path.join(__dirname, 'icon.png'),
+            sound: true,
+            wait: true,
+            appName: 'Aris Manager',
+            appIcon:  path.join(__dirname, 'icon.png'),
+            appID: 'app.aris.manager'
+        },
+        (err, response) => {
+            if (response === 'activate') {
+                console.log(callBack)
+            }
+        }
+    );
+    notifier.on('click',()=>{
+        console.log(callBack)
+    })
+}
+
+ipcMain.on('showNotification',(event, titre,body,callback)=>{
+    showNotification(titre,body,callback)
+})
+ipcMain.on('badge',(event,count)=>{
+    setBadge(count)
+})
+
+function createBadgeImage(text) {
+    const size = 32;
+    const canvas = createCanvas(size, size);
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = '#794ead';//est ce que ceci accepte les couleurs hexadecimal?
+    ctx.beginPath();
+    ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.font = '18px Segoe UI';
+    ctx.fillStyle = 'white';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    if (parseInt(text)>=10){
+        ctx.fillText("9+", size / 2, size / 2);
+    }else{
+        ctx.fillText(text, size / 2, size / 2);
+    }
+
+    const buffer = canvas.toBuffer('image/png');
+    return nativeImage.createFromBuffer(buffer);
+}
+
+function setBadge(count) {
+    if (process.platform === 'darwin') {
+        app.dock.setBadge(count > 0 ? count.toString() : '');
+    } else if (process.platform === 'win32' || process.platform === 'linux') {
+
+        if (count > 0) {
+            mainWindow.setOverlayIcon(createBadgeImage(count), `${count} nouvelles notification(s)`);
+        } else {
+            mainWindow.setOverlayIcon(null, '');
+        }
+    }
+}
+
+const getUserMachineGUID = require('./UserMachineGUID');
+
+ipcMain.handle('machineInfo',async ()=>{
+    return await getUserMachineGUID();
+})
+ipcMain.on('navigate',(event,url)=>{
+    shell.openExternal(url)
 })
