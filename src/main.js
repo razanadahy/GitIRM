@@ -3,16 +3,17 @@ const { shell } = require('electron');
 const { nativeImage } = require('electron');
 const { autoUpdater } = require('electron-updater');
 const path = require('node:path');
-const AutoLaunch = require('auto-launch');
 const notifier = require('node-notifier');
-const fs = require('fs');
 const { createCanvas } = require('canvas');
 // process.env.TZ = "Indian/Antananarivo";
 
-function logToFile(message) {
-    const logFilePath = path.join(app.getPath('userData'), 'app.log');
-    fs.appendFileSync(logFilePath, message + '\n');
-}
+const {
+    initDB,
+    insertSession,
+    getSession,
+    deleteDB
+} = require('./DB')
+
 let mainWindow;
 const gotTheLock = app.requestSingleInstanceLock();
 if (!gotTheLock) {
@@ -27,12 +28,28 @@ if (!gotTheLock) {
     });
 }
 
+let splash;
+
 function createWindow () {
+
+    splash = new BrowserWindow({
+        width: 800,
+        height: 470,
+        frame: false,
+        alwaysOnTop: true,
+        backgroundMaterial: "acrylic",
+        transparent: true,
+        resizable: false,
+        icon: path.join(__dirname,'icon.ico'),
+    });
+    splash.loadFile(path.join(__dirname, 'SplashScreen.html'))
+
     mainWindow = new BrowserWindow({
         autoHideMenuBar: true,
         width: 800,
         height: 650,
         title: 'ARIS Manager',
+        show: false,
         icon: path.join(__dirname,'icon.ico'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.js'),
@@ -41,13 +58,13 @@ function createWindow () {
             nodeIntegration: false,
             webSecurity: false,
             // devTools: false
-        }
+        },
     });
 
     // mainWindow.loadFile(path.join(__dirname, 'build', 'index.html')).then(()=>{
     //     // mainWindow.webContents.openDevTools()
     // });
-    mainWindow.loadURL('http://192.168.4.229:3000/').then(()=>{
+    mainWindow.loadURL('http://localhost:3000/').then(()=>{
         mainWindow.webContents.openDevTools()
     })
     mainWindow.on('closed', () => {
@@ -57,6 +74,7 @@ function createWindow () {
 
 app.whenReady().then(()=>{
     createWindow()
+    initDB()
     // process.env.TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || "Indian/Antananarivo";
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) {
@@ -68,15 +86,9 @@ app.whenReady().then(()=>{
 app.on('before-quit', async (event) => {
     event.preventDefault();
     try {
-        const {default: ElectronStore} = await import('electron-store');
-        const store = new ElectronStore({
-            name: 'elpSession',
-            cwd: 'storage',
-        });
-        const token = store.get('token');
-        console.log("on est la...")
+        const {guid}= await getUserMachineGUID()
+        const token = getSession(guid);
         if (token) {
-            // const response = await fetch('http://192.168.4.229:8082/pointage/', {
             const response = await fetch('https://prod.aris-cc.com/pointage/', {
                 method: 'put',
                 headers: {
@@ -84,7 +96,6 @@ app.on('before-quit', async (event) => {
                     "Authorization": `Bearer ${token}`,
                 },
             });
-
             if (!response.ok) {
                 throw new Error('Erreur lors de la requête de déconnexion');
             }
@@ -102,43 +113,25 @@ app.on('window-all-closed', () => {
     }
 });
 ipcMain.on('maximise',()=>{
+    if (splash) {
+        splash.close()
+        splash=null
+    };
+    mainWindow.show()
     mainWindow.maximize();
     mainWindow.setMinimumSize(1200, 720);
-})
-const autoLauncher = new AutoLaunch({
-    name: 'arismanager',
-    path:  path.join(__dirname, 'ARISManager.exe'),
 });
-autoLauncher.isEnabled()
-    .then((isEnabled) => {
-        logToFile("date : "+ new Date()+ "  ....auto lunch"+app.getVersion())
-        if (!isEnabled) autoLauncher.enable();
-    })
-    .catch((err) => {
-        logToFile("date : "+ new Date()+ "  erreur : "+ err.message())
-        console.error(err);
-    });
-// const crypto=require('crypto')
-// const encryptionKey = process.env.ENCRYPTION_KEY || crypto.randomBytes(32).toString('hex');
-// console.error(encryptionKey)
-(async () => {
-    const { default: ElectronStore } = await import('electron-store');
 
-    const store = new ElectronStore({
-        name: 'elpSession',
-        cwd: 'storage',
-        // encryptionKey: encryptionKey,
-    });
-    ipcMain.on('clear',()=>{
-        store.clear()
-    })
-    ipcMain.on('set',(event,name,value)=>{
-        store.set(name,value)
-    })
-    ipcMain.handle('get', async (event,name)=>{
-        return store.get(name) || null
-    })
-})();
+ipcMain.on('clear',()=>{
+    deleteDB()
+})
+ipcMain.on('set',(event,name,value)=>{
+    insertSession(name,value)
+})
+ipcMain.handle('get', async (event,name)=>{
+    const {guid}= await getUserMachineGUID()
+    return getSession(guid)
+})
 
 const checkUpdate = (event) => {
     autoUpdater.autoDownload=false
